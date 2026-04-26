@@ -158,8 +158,32 @@
     }
   }
 
+  // Persistent <audio> element. Created and "primed" on the very first user
+  // tap so that later programmatic .play() calls (after long async work like
+  // OCR + TTS fetch) are not blocked by the browser's autoplay policy.
+  function getPersistentAudio() {
+    if (!state.audioElement) {
+      state.audioElement = new Audio();
+      state.audioElement.preload = 'auto';
+    }
+    return state.audioElement;
+  }
+  function unlockAudio() {
+    if (state.audioUnlocked) return;
+    state.audioUnlocked = true;
+    const a = getPersistentAudio();
+    // 44-byte silent WAV: 8 kHz mono, 0 samples — just enough to satisfy
+    // the autoplay gesture requirement.
+    a.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+    a.play().catch(() => { /* unlock failed; we'll still try later */ });
+  }
+  ['touchstart', 'click', 'keydown'].forEach((ev) => {
+    document.addEventListener(ev, unlockAudio, { once: true, passive: true });
+  });
+
   function speak(text) {
     stopAllAudio();
+    unlockAudio();
     const usePremium =
       state.premiumEnabled &&
       state.workerUrl &&
@@ -214,10 +238,11 @@
       state.audioCache.set(cacheKey, url);
     }
     await new Promise((resolve, reject) => {
-      const audio = new Audio(url);
-      audio.playbackRate = state.rate;
+      const audio = getPersistentAudio();
       audio.onended = () => { state.currentAudio = null; resolve(); };
       audio.onerror = () => reject(new Error('audio playback failed'));
+      audio.src = url;
+      audio.playbackRate = state.rate;
       state.currentAudio = audio;
       audio.play().catch(reject);
     });

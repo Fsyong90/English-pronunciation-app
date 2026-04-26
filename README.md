@@ -13,14 +13,20 @@ A free Progressive Web App (PWA) that helps users practice English pronunciation
 - **Offline support** — once loaded, works without internet (TTS still needs the device's TTS engine).
 - **Install on Android** — Chrome → menu → *Install app*.
 
-## How it works (and why it's free)
+## How it works (and why it stays free for end users)
 
-The app uses the browser's built-in **Web Speech API**:
+Two voice paths:
 
-- `window.speechSynthesis` for native pronunciation (uses Android's on-device Google Text-to-Speech engine).
-- `webkitSpeechRecognition` for scoring the user's voice (Chrome routes this to Google's speech recognition service, free for end users — no API key, no backend).
+1. **Default — browser Web Speech API.** No API key, no backend.
+   - `speechSynthesis` for pronunciation (uses Android's on-device Google TTS engine).
+   - `webkitSpeechRecognition` for scoring (Chrome routes to Google's speech recognition for free).
 
-Because everything runs in the browser, there's **no server cost** and **no API key** to manage. Host it on GitHub Pages, Netlify, or Vercel for free.
+2. **Optional premium — Google Gemini 3.1 Flash TTS** for richer, more natural voices.
+   - Routed through your own **Cloudflare Worker** (free tier: 100k req/day) so the API key never ships to the browser.
+   - Uses Gemini's free API tier, with a configurable hard cap in the worker as a safety net.
+   - **Automatic fallback**: if the worker is offline, slow, or hits its daily cap, the app silently falls back to the device voice — the app keeps working.
+
+Static PWA + free Worker = $0/month, no credit card required.
 
 ## Run locally
 
@@ -59,6 +65,22 @@ Open `http://localhost:8000` in Chrome. For mic access on a real device you must
 
 \* iOS Safari has limited Web Speech Recognition support; for best results use Chrome on Android.
 
+## Enable premium voice (optional, ~5 minutes)
+
+Full guide in [`worker/README.md`](worker/README.md). Short version:
+
+```bash
+npm install -g wrangler
+wrangler login
+cd worker
+wrangler secret put GEMINI_API_KEY        # paste key from aistudio.google.com/app/apikey
+wrangler deploy
+```
+
+Take the printed `https://speakwell-tts.<sub>.workers.dev` URL, open the PWA's
+**Settings** tab, paste it into *TTS worker URL*, toggle *Use premium voice*,
+and tap *Test premium voice*.
+
 ## Project structure
 
 ```
@@ -69,7 +91,11 @@ Open `http://localhost:8000` in Chrome. For mic access on a real device you must
 ├── data/words.js          # word library
 ├── manifest.webmanifest   # PWA manifest
 ├── service-worker.js      # offline cache
-└── icons/                 # app icons (svg + png 192/512, normal + maskable)
+├── icons/                 # app icons (svg + png 192/512, normal + maskable)
+└── worker/                # optional Cloudflare Worker for Gemini TTS
+    ├── worker.js
+    ├── wrangler.toml
+    └── README.md
 ```
 
 ## Customize the word list
@@ -80,7 +106,8 @@ Edit `data/words.js`. Each entry is `{ word, ipa, meaning }`. Add or rename cate
 
 - Lesson mode with structured drills (minimal pairs, sentence stress).
 - Pitch / intonation visualization.
-- Optional cloud TTS (e.g. Gemini 3.1 Flash TTS / Google Cloud TTS) for richer voices — would require a small backend and paid API, so the app would no longer be 100% free for end users.
+- Per-user rate limiting in the worker (currently global).
+- Audio caching in the service worker so previously-heard premium clips replay offline.
 
 ## License
 

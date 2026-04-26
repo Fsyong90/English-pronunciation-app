@@ -1,0 +1,29 @@
+name = "speakwell-tts"
+main = "worker.js"
+compatibility_date = "2025-04-01"
+
+# ── Public config (safe to commit) ────────────────────────────────────────────
+[vars]
+MODEL = "gemini-3.1-flash-tts-preview"
+DEFAULT_VOICE = "Kore"
+DAILY_LIMIT = "500"
+# Lock this down to your deployed app's origin once you have one, e.g.:
+# ALLOWED_ORIGIN = "https://fsyong90.github.io"
+ALLOWED_ORIGIN = "*"
+
+# ── Secrets (NEVER put real keys here) ────────────────────────────────────────
+# Set via:  wrangler secret put GEMINI_API_KEY
+#
+# Get a free key: https://aistudio.google.com/app/apikey
+
+# ── Optional: persistent daily counter via KV ────────────────────────────────
+# Without this binding the worker still works, but the DAILY_LIMIT is not
+# enforced (Gemini's own free-tier rate limit becomes the only backstop).
+#
+# To enable:
+#   wrangler kv:namespace create RATE_KV
+# Then uncomment and paste the returned id below:
+#
+# [[kv_namespaces]]
+# binding = "RATE_KV"
+# id = "PASTE_KV_NAMESPACE_ID_HERE"

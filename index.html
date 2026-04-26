@@ -97,12 +97,40 @@
           <option value="en-CA">Canadian (en-CA)</option>
         </select>
 
+        <div class="section-title">Premium voice (Gemini 3.1 Flash TTS)</div>
+
+        <label class="toggle">
+          <input type="checkbox" id="premiumToggle" />
+          <span>Use premium voice when available</span>
+        </label>
+
+        <label class="field-label" for="workerUrlInput">TTS worker URL</label>
+        <input type="url" id="workerUrlInput" placeholder="https://speakwell-tts.you.workers.dev" autocomplete="off" />
+
+        <label class="field-label" for="premiumVoiceSelect">Premium voice</label>
+        <select id="premiumVoiceSelect">
+          <option value="Kore">Kore (balanced, neutral)</option>
+          <option value="Puck">Puck (upbeat)</option>
+          <option value="Zephyr">Zephyr (bright)</option>
+          <option value="Charon">Charon (deep)</option>
+          <option value="Fenrir">Fenrir (excitable)</option>
+          <option value="Aoede">Aoede (breezy)</option>
+          <option value="Leda">Leda (youthful)</option>
+          <option value="Orus">Orus (firm)</option>
+        </select>
+
+        <button id="testPremiumBtn" class="btn small">Test premium voice</button>
+        <div id="premiumStatus" class="muted" style="margin-top:6px;"></div>
+
+        <div class="divider"></div>
+
         <button id="resetProgressBtn" class="btn ghost">Reset progress</button>
 
         <div class="about">
           <p><strong>How to install on Android:</strong> open this site in Chrome, tap the menu (⋮) and choose <em>Install app</em> or <em>Add to Home screen</em>.</p>
           <p>Microphone permission is required for the Record feature.</p>
-          <p class="muted">100% free · works offline after first load.</p>
+          <p class="muted">100% free for end users · works offline after first load.</p>
+          <p class="muted">Premium voice uses Google Gemini via your own free Cloudflare Worker. See <code>worker/README.md</code> in the repo for setup.</p>
         </div>
       </div>
     </section>

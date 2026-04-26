@@ -1,4 +1,4 @@
-const CACHE = 'speakwell-v1';
+const CACHE = 'speakwell-v2';
 const ASSETS = [
   './',
   './index.html',

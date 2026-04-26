@@ -15,7 +15,13 @@
     todayKey: new Date().toISOString().slice(0, 10),
     todayCount: 0,
     recognition: null,
-    recognizing: false
+    recognizing: false,
+    premiumEnabled: localStorage.getItem('premiumEnabled') === '1',
+    workerUrl: (localStorage.getItem('workerUrl') || '').trim(),
+    premiumVoice: localStorage.getItem('premiumVoice') || 'Kore',
+    premiumDisabledUntil: 0,
+    audioCache: new Map(),
+    currentAudio: null
   };
 
   // Restore today's count
@@ -94,12 +100,88 @@
     location.reload();
   });
 
+  // Premium voice settings
+  $('premiumToggle').checked = state.premiumEnabled;
+  $('workerUrlInput').value = state.workerUrl;
+  $('premiumVoiceSelect').value = state.premiumVoice;
+
+  $('premiumToggle').addEventListener('change', (e) => {
+    state.premiumEnabled = e.target.checked;
+    localStorage.setItem('premiumEnabled', state.premiumEnabled ? '1' : '0');
+    refreshPremiumStatus();
+  });
+  $('workerUrlInput').addEventListener('change', (e) => {
+    state.workerUrl = e.target.value.trim().replace(/\/+$/, '');
+    localStorage.setItem('workerUrl', state.workerUrl);
+    state.audioCache.clear();
+    refreshPremiumStatus();
+  });
+  $('premiumVoiceSelect').addEventListener('change', (e) => {
+    state.premiumVoice = e.target.value;
+    localStorage.setItem('premiumVoice', state.premiumVoice);
+    state.audioCache.clear();
+  });
+  $('testPremiumBtn').addEventListener('click', async () => {
+    if (!state.workerUrl) { toast('Enter your worker URL first.'); return; }
+    const status = $('premiumStatus');
+    status.textContent = 'Calling worker…';
+    try {
+      await speakPremium('This is the premium voice from Gemini.', { force: true });
+      status.textContent = 'Worker is reachable. Premium voice ready.';
+      status.style.color = 'var(--good)';
+    } catch (err) {
+      status.textContent = 'Worker call failed: ' + err.message;
+      status.style.color = 'var(--bad)';
+    }
+  });
+  refreshPremiumStatus();
+
+  function refreshPremiumStatus() {
+    const status = $('premiumStatus');
+    if (!state.premiumEnabled) {
+      status.textContent = 'Premium off — using device voice.';
+      status.style.color = '';
+    } else if (!state.workerUrl) {
+      status.textContent = 'Add your TTS worker URL to enable premium voice.';
+      status.style.color = 'var(--warn)';
+    } else {
+      status.textContent = 'Premium on. Tap "Test premium voice" to verify.';
+      status.style.color = '';
+    }
+  }
+
+  function stopAllAudio() {
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+    if (state.currentAudio) {
+      try { state.currentAudio.pause(); } catch (_) {}
+      state.currentAudio = null;
+    }
+  }
+
   function speak(text) {
+    stopAllAudio();
+    const usePremium =
+      state.premiumEnabled &&
+      state.workerUrl &&
+      Date.now() > state.premiumDisabledUntil;
+
+    if (usePremium) {
+      speakPremium(text).catch((err) => {
+        // Cool-down: don't keep slamming a broken worker for 60s.
+        state.premiumDisabledUntil = Date.now() + 60_000;
+        toast('Premium voice unavailable, using device voice (' + err.message + ').');
+        speakDevice(text);
+      });
+    } else {
+      speakDevice(text);
+    }
+  }
+
+  function speakDevice(text) {
     if (!('speechSynthesis' in window)) {
       toast('This browser does not support speech synthesis.');
       return;
     }
-    speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     const voice = state.voices.find(v => v.voiceURI === state.selectedVoiceURI);
     if (voice) u.voice = voice;
@@ -107,6 +189,38 @@
     u.pitch = 1;
     u.lang = (voice && voice.lang) || state.accent || 'en-US';
     speechSynthesis.speak(u);
+  }
+
+  async function speakPremium(text, opts = {}) {
+    const cacheKey = state.premiumVoice + '\n' + text;
+    let url = state.audioCache.get(cacheKey);
+    if (!url) {
+      const res = await fetch(state.workerUrl + '/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice: state.premiumVoice })
+      });
+      if (!res.ok) {
+        let detail = res.status + '';
+        try {
+          const j = await res.json();
+          detail = j.error || detail;
+          if (j.error === 'daily_limit_reached') detail = 'daily cap reached';
+        } catch (_) {}
+        throw new Error(detail);
+      }
+      const blob = await res.blob();
+      url = URL.createObjectURL(blob);
+      state.audioCache.set(cacheKey, url);
+    }
+    await new Promise((resolve, reject) => {
+      const audio = new Audio(url);
+      audio.playbackRate = state.rate;
+      audio.onended = () => { state.currentAudio = null; resolve(); };
+      audio.onerror = () => reject(new Error('audio playback failed'));
+      state.currentAudio = audio;
+      audio.play().catch(reject);
+    });
   }
 
   // ---------- Library ----------

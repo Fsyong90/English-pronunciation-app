@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1f6feb" />
+  <meta name="description" content="Free English pronunciation practice app. Listen, record, and score your speech." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>SpeakWell — English Pronunciation</title>
+</head>
+<body>
+  <header class="app-header">
+    <h1>SpeakWell</h1>
+    <p class="tagline">Practice English pronunciation</p>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="library" role="tab">Library</button>
+    <button class="tab" data-tab="practice" role="tab">Practice</button>
+    <button class="tab" data-tab="custom" role="tab">Custom</button>
+    <button class="tab" data-tab="settings" role="tab">Settings</button>
+  </nav>
+
+  <main>
+    <!-- LIBRARY -->
+    <section id="tab-library" class="tab-panel active">
+      <div class="category-bar" id="categoryBar"></div>
+      <ul id="wordList" class="word-list"></ul>
+    </section>
+
+    <!-- PRACTICE -->
+    <section id="tab-practice" class="tab-panel">
+      <div class="practice-card">
+        <div class="practice-target">
+          <div class="target-word" id="practiceWord">tap "New" to start</div>
+          <div class="target-ipa" id="practiceIpa"></div>
+          <div class="target-meaning" id="practiceMeaning"></div>
+        </div>
+
+        <div class="action-row">
+          <button id="practiceListenBtn" class="btn primary" aria-label="Listen">
+            <span class="icon">▶</span> Listen
+          </button>
+          <button id="practiceRecordBtn" class="btn record" aria-label="Record">
+            <span class="icon">●</span> <span class="record-label">Record</span>
+          </button>
+          <button id="practiceNextBtn" class="btn ghost" aria-label="New word">New</button>
+        </div>
+
+        <div class="result" id="practiceResult"></div>
+        <div class="transcript" id="practiceTranscript"></div>
+
+        <div class="score-bar"><div class="score-fill" id="practiceScoreFill"></div></div>
+
+        <div class="streak">
+          Best streak: <span id="bestStreak">0</span> · Today: <span id="todayCount">0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUSTOM -->
+    <section id="tab-custom" class="tab-panel">
+      <div class="practice-card">
+        <label class="field-label" for="customInput">Type any word or sentence</label>
+        <textarea id="customInput" rows="3" placeholder="e.g. The quick brown fox jumps over the lazy dog."></textarea>
+        <div class="action-row">
+          <button id="customListenBtn" class="btn primary">▶ Listen</button>
+          <button id="customRecordBtn" class="btn record">● <span class="record-label">Record</span></button>
+        </div>
+        <div class="result" id="customResult"></div>
+        <div class="transcript" id="customTranscript"></div>
+        <div class="score-bar"><div class="score-fill" id="customScoreFill"></div></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="tab-settings" class="tab-panel">
+      <div class="practice-card">
+        <label class="field-label" for="voiceSelect">Voice</label>
+        <select id="voiceSelect"></select>
+
+        <label class="field-label" for="rateRange">Speed: <span id="rateValue">1.0×</span></label>
+        <input type="range" id="rateRange" min="0.5" max="1.3" step="0.05" value="1" />
+
+        <label class="field-label" for="accentSelect">Recognition accent</label>
+        <select id="accentSelect">
+          <option value="en-US">American (en-US)</option>
+          <option value="en-GB">British (en-GB)</option>
+          <option value="en-AU">Australian (en-AU)</option>
+          <option value="en-IN">Indian (en-IN)</option>
+          <option value="en-CA">Canadian (en-CA)</option>
+        </select>
+
+        <button id="resetProgressBtn" class="btn ghost">Reset progress</button>
+
+        <div class="about">
+          <p><strong>How to install on Android:</strong> open this site in Chrome, tap the menu (⋮) and choose <em>Install app</em> or <em>Add to Home screen</em>.</p>
+          <p>Microphone permission is required for the Record feature.</p>
+          <p class="muted">100% free · works offline after first load.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="data/words.js"></script>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>

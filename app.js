@@ -338,6 +338,90 @@
     });
   });
 
+  // ---------- Photo → OCR → speak ----------
+  $('photoCaptureBtn').addEventListener('click', () => $('photoInput').click());
+  $('photoGalleryBtn').addEventListener('click', () => $('photoInputGallery').click());
+  $('photoInput').addEventListener('change', (e) => handlePhoto(e.target.files[0]));
+  $('photoInputGallery').addEventListener('change', (e) => handlePhoto(e.target.files[0]));
+
+  async function handlePhoto(file) {
+    if (!file) return;
+    if (!state.workerUrl) {
+      toast('Camera reading needs the TTS worker URL — see Settings.');
+      return;
+    }
+
+    const wrap = $('photoPreviewWrap');
+    const preview = $('photoPreview');
+    const status = $('photoStatus');
+    wrap.hidden = false;
+
+    let resized;
+    try {
+      resized = await resizeImage(file, 1280, 0.85);
+    } catch (err) {
+      status.textContent = 'Could not read that image.';
+      status.style.color = 'var(--bad)';
+      return;
+    }
+    preview.src = resized.previewUrl;
+    status.textContent = 'Reading text from photo…';
+    status.style.color = '';
+
+    try {
+      const res = await fetch(state.workerUrl + '/ocr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: resized.dataUrl })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || ('http_' + res.status));
+      }
+      if (!data.detected || !data.text) {
+        status.textContent = 'No English text detected. Try a clearer or closer photo.';
+        status.style.color = 'var(--warn)';
+        return;
+      }
+      $('customInput').value = data.text;
+      status.textContent = 'Got it — playing now.';
+      status.style.color = 'var(--good)';
+      speak(data.text);
+    } catch (err) {
+      status.textContent = 'Photo reading failed: ' + err.message;
+      status.style.color = 'var(--bad)';
+    } finally {
+      // allow re-selecting the same file
+      $('photoInput').value = '';
+      $('photoInputGallery').value = '';
+    }
+  }
+
+  function resizeImage(file, maxEdge, quality) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('read_failed'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxEdge / Math.max(img.naturalWidth, img.naturalHeight));
+          const w = Math.round(img.naturalWidth * scale);
+          const h = Math.round(img.naturalHeight * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve({ dataUrl, previewUrl: dataUrl });
+        };
+        img.onerror = () => reject(new Error('decode_failed'));
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   // ---------- Speech Recognition ----------
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 

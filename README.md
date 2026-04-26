@@ -7,7 +7,7 @@ A free Progressive Web App (PWA) that helps users practice English pronunciation
 - **Library** — curated word & phrase list across categories (Greetings, Often Mispronounced, Th/R/L sounds, Travel, Business, Numbers & Time, Tongue Twisters), each with IPA phonetics and meaning.
 - **Listen** — tap any word to hear native pronunciation (browser TTS). Adjustable speed and voice.
 - **Practice** — tap *Record*, speak the word, and the app scores your pronunciation 0–100% with a colored diff of what was heard.
-- **Custom** — type any word or sentence and practice it.
+- **Custom** — type any word or sentence and practice it. **📷 Capture from photo** uses your phone camera + Gemini vision to extract English text from a photo (sign, menu, book) and pronounce it automatically.
 - **Settings** — pick voice, speed (0.5×–1.3×), and recognition accent (US / UK / AU / IN / CA).
 - **Streak & daily count** — saved locally.
 - **Offline support** — once loaded, works without internet (TTS still needs the device's TTS engine).
@@ -21,10 +21,12 @@ Two voice paths:
    - `speechSynthesis` for pronunciation (uses Android's on-device Google TTS engine).
    - `webkitSpeechRecognition` for scoring (Chrome routes to Google's speech recognition for free).
 
-2. **Optional premium — Google Gemini 3.1 Flash TTS** for richer, more natural voices.
+2. **Optional premium — Google Gemini** via your own free Cloudflare Worker.
+   - **Premium voice**: Gemini 3.1 Flash TTS for richer, more natural pronunciation.
+   - **Photo to speech**: snap a photo, Gemini vision (`gemini-2.5-flash`) extracts the English text, and the app reads it aloud.
    - Routed through your own **Cloudflare Worker** (free tier: 100k req/day) so the API key never ships to the browser.
    - Uses Gemini's free API tier, with a configurable hard cap in the worker as a safety net.
-   - **Automatic fallback**: if the worker is offline, slow, or hits its daily cap, the app silently falls back to the device voice — the app keeps working.
+   - **Automatic fallback**: if the worker is offline or hits its daily cap, the app falls back to the device voice for TTS so it keeps working. (OCR requires the worker.)
 
 Static PWA + free Worker = $0/month, no credit card required.
 

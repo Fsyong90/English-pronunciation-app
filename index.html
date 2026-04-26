@@ -67,8 +67,21 @@
     <!-- CUSTOM -->
     <section id="tab-custom" class="tab-panel">
       <div class="practice-card">
-        <label class="field-label" for="customInput">Type any word or sentence</label>
+        <label class="field-label" for="customInput">Type, or capture text from a photo</label>
         <textarea id="customInput" rows="3" placeholder="e.g. The quick brown fox jumps over the lazy dog."></textarea>
+
+        <div class="photo-row">
+          <button id="photoCaptureBtn" class="btn">📷 Capture from photo</button>
+          <button id="photoGalleryBtn" class="btn ghost small">From gallery</button>
+        </div>
+        <input type="file" id="photoInput" accept="image/*" capture="environment" hidden />
+        <input type="file" id="photoInputGallery" accept="image/*" hidden />
+
+        <div id="photoPreviewWrap" class="photo-preview" hidden>
+          <img id="photoPreview" alt="captured photo" />
+          <div id="photoStatus" class="muted"></div>
+        </div>
+
         <div class="action-row">
           <button id="customListenBtn" class="btn primary">▶ Listen</button>
           <button id="customRecordBtn" class="btn record">● <span class="record-label">Record</span></button>

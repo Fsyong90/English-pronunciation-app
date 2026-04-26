@@ -3,10 +3,14 @@
 Tiny Cloudflare Worker that proxies Gemini 3.1 Flash TTS so the API key
 stays on the server and never ships to phones.
 
-The PWA in the parent directory calls `POST /tts` and gets back a `.wav`
-audio blob. If this worker is offline, slow, or hits its daily cap, the
-PWA automatically falls back to the browser's built-in TTS so the app
-keeps working.
+The PWA in the parent directory calls:
+
+- `POST /tts` — returns a `.wav` audio blob (Gemini 3.1 Flash TTS).
+- `POST /ocr` — returns extracted English text from an uploaded photo (Gemini vision).
+
+If this worker is offline, slow, or hits its daily cap, the PWA falls back
+to the browser's built-in TTS for audio. The OCR feature requires the
+worker (no offline fallback yet).
 
 ## What you need (all free)
 
@@ -73,13 +77,16 @@ Then `wrangler deploy` again.
 ## Test the worker from the command line
 
 ```bash
+# /tts — returns a WAV file
 curl -X POST https://speakwell-tts.<your-subdomain>.workers.dev/tts \
   -H "Content-Type: application/json" \
   -d '{"text":"Hello, this is SpeakWell.","voice":"Kore"}' \
   --output hello.wav
 
-# play it
-ffplay hello.wav    # or open hello.wav in any media player
+# /ocr — returns extracted text JSON
+curl -X POST https://speakwell-tts.<your-subdomain>.workers.dev/ocr \
+  -H "Content-Type: application/json" \
+  -d "{\"image\":\"data:image/jpeg;base64,$(base64 -w0 photo.jpg)\"}"
 ```
 
 ## Available voices

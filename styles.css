@@ -288,6 +288,34 @@ textarea, select, input[type="range"] {
 textarea { resize: vertical; }
 input[type="range"] { padding: 0; }
 
+.photo-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.photo-row .btn { flex: 1 1 0; }
+.photo-row .btn.small { flex: 0 0 auto; }
+
+.photo-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+}
+.photo-preview img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: #000;
+}
+#photoStatus { font-size: 13px; }
+
 .section-title {
   margin-top: 18px;
   padding-top: 14px;

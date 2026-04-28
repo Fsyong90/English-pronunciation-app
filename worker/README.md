@@ -7,10 +7,11 @@ The PWA in the parent directory calls:
 
 - `POST /tts` — returns a `.wav` audio blob (Gemini 3.1 Flash TTS).
 - `POST /ocr` — returns extracted English text from an uploaded photo (Gemini vision).
+- `POST /grammar` — returns a corrected sentence and a list of per-change explanations (Gemini text).
 
 If this worker is offline, slow, or hits its daily cap, the PWA falls back
-to the browser's built-in TTS for audio. The OCR feature requires the
-worker (no offline fallback yet).
+to the browser's built-in TTS for audio. The OCR and grammar features
+require the worker (no offline fallback yet).
 
 ## What you need (all free)
 
@@ -87,6 +88,11 @@ curl -X POST https://speakwell-tts.<your-subdomain>.workers.dev/tts \
 curl -X POST https://speakwell-tts.<your-subdomain>.workers.dev/ocr \
   -H "Content-Type: application/json" \
   -d "{\"image\":\"data:image/jpeg;base64,$(base64 -w0 photo.jpg)\"}"
+
+# /grammar — returns corrected sentence + change explanations JSON
+curl -X POST https://speakwell-tts.<your-subdomain>.workers.dev/grammar \
+  -H "Content-Type: application/json" \
+  -d '{"text":"He go to school every days."}'
 ```
 
 ## Available voices

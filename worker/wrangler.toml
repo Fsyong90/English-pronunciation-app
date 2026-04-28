@@ -6,6 +6,7 @@ compatibility_date = "2025-04-01"
 [vars]
 MODEL = "gemini-3.1-flash-tts-preview"
 VISION_MODEL = "gemini-2.5-flash"
+GRAMMAR_MODEL = "gemini-2.5-flash"
 DEFAULT_VOICE = "Kore"
 DAILY_LIMIT = "500"
 # Lock this down to your deployed app's origin once you have one, e.g.:

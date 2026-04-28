@@ -7,19 +7,22 @@
 //   GET  /health      -> health JSON
 //   POST /tts         -> { text, voice? }            -> audio/wav
 //   POST /ocr         -> { image: "data:image/...;base64,..." } -> { text, detected }
+//   POST /grammar     -> { text }                    -> { corrected, hasErrors, changes[] }
 //
 // Configure via environment (see wrangler.toml):
 //   GEMINI_API_KEY (secret, REQUIRED): wrangler secret put GEMINI_API_KEY
 //   MODEL          (var): TTS model,    default "gemini-3.1-flash-tts-preview"
 //   VISION_MODEL   (var): vision model, default "gemini-2.5-flash"
+//   GRAMMAR_MODEL  (var): grammar model, default "gemini-2.5-flash"
 //   DEFAULT_VOICE  (var): default "Kore"
-//   DAILY_LIMIT    (var): default "500" (shared across /tts and /ocr)
+//   DAILY_LIMIT    (var): default "500" (shared across all endpoints)
 //   ALLOWED_ORIGIN (var): default "*"
 //   RATE_KV        (kv binding, optional): if set, enforces DAILY_LIMIT per UTC day.
 
 const DEFAULTS = {
   MODEL: 'gemini-3.1-flash-tts-preview',
   VISION_MODEL: 'gemini-2.5-flash',
+  GRAMMAR_MODEL: 'gemini-2.5-flash',
   DEFAULT_VOICE: 'Kore',
   DAILY_LIMIT: 500,
   MAX_TEXT: 1000,
@@ -52,6 +55,7 @@ export default {
 
     if (url.pathname === '/tts') return handleTts(request, env, ctx, allowOrigin);
     if (url.pathname === '/ocr') return handleOcr(request, env, ctx, allowOrigin);
+    if (url.pathname === '/grammar') return handleGrammar(request, env, ctx, allowOrigin);
     return cors(json({ error: 'not_found' }, 404), allowOrigin);
   },
 };
@@ -154,6 +158,81 @@ async function handleOcr(request, env, ctx, allowOrigin) {
     return cors(json({ text: '', detected: false }), allowOrigin);
   }
   return cors(json({ text, detected: true, model: visionModel }), allowOrigin);
+}
+
+async function handleGrammar(request, env, ctx, allowOrigin) {
+  let body;
+  try { body = await request.json(); } catch (_) { body = {}; }
+  const text = (body.text || '').toString().trim();
+  if (!text) return cors(json({ error: 'missing_text' }, 400), allowOrigin);
+  if (text.length > DEFAULTS.MAX_TEXT) {
+    return cors(json({ error: 'text_too_long', max: DEFAULTS.MAX_TEXT }, 400), allowOrigin);
+  }
+
+  const overLimit = await checkAndBumpDaily(env, ctx);
+  if (overLimit) return cors(json(overLimit, 429), allowOrigin);
+
+  const grammarModel = env.GRAMMAR_MODEL || DEFAULTS.GRAMMAR_MODEL;
+  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(grammarModel)}:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`;
+
+  const prompt =
+    'You are a friendly English grammar tutor for an ESL learner. ' +
+    'Given the user sentence, return a JSON object with: ' +
+    '(1) "corrected": the corrected sentence (same meaning, only fix grammar, spelling, word choice, articles, verb tense, prepositions; do NOT rewrite for style); ' +
+    '(2) "hasErrors": true if you changed anything, false if the sentence is already correct; ' +
+    '(3) "changes": an array, one entry per meaningful change, each with "before" (the original word/phrase), "after" (the corrected word/phrase), and "explanation" (one short sentence in plain English explaining WHY, suitable for a learner). ' +
+    'If the sentence is already correct, set hasErrors=false and return an empty changes array. ' +
+    'Keep explanations concise — under 25 words each. ' +
+    '\n\nUser sentence:\n' + text;
+
+  const apiBody = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.1,
+      maxOutputTokens: 1024,
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          corrected: { type: 'STRING' },
+          hasErrors: { type: 'BOOLEAN' },
+          changes: {
+            type: 'ARRAY',
+            items: {
+              type: 'OBJECT',
+              properties: {
+                before: { type: 'STRING' },
+                after: { type: 'STRING' },
+                explanation: { type: 'STRING' },
+              },
+              required: ['before', 'after', 'explanation'],
+            },
+          },
+        },
+        required: ['corrected', 'hasErrors', 'changes'],
+      },
+    },
+  };
+
+  const upstream = await callUpstream(apiUrl, apiBody);
+  if (upstream.error) return cors(json(upstream.error, upstream.status), allowOrigin);
+
+  const raw = upstream.data?.candidates?.[0]?.content?.parts?.find((p) => p.text)?.text || '';
+  let parsed;
+  try { parsed = JSON.parse(raw); }
+  catch (_) {
+    return cors(json({ error: 'bad_model_output', raw: raw.slice(0, 500) }, 502), allowOrigin);
+  }
+  // Defensive normalization
+  const result = {
+    corrected: typeof parsed.corrected === 'string' ? parsed.corrected : text,
+    hasErrors: !!parsed.hasErrors,
+    changes: Array.isArray(parsed.changes) ? parsed.changes.filter((c) =>
+      c && typeof c.before === 'string' && typeof c.after === 'string' && typeof c.explanation === 'string'
+    ) : [],
+    model: grammarModel,
+  };
+  return cors(json(result), allowOrigin);
 }
 
 async function callUpstream(apiUrl, apiBody) {

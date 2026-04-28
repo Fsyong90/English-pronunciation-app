@@ -82,6 +82,20 @@
           <div id="photoStatus" class="muted"></div>
         </div>
 
+        <button id="grammarCheckBtn" class="btn">✓ Check grammar</button>
+        <div id="grammarPanel" class="grammar-panel" hidden>
+          <div id="grammarStatus" class="muted"></div>
+          <div id="grammarCorrectedWrap" hidden>
+            <div class="grammar-label">Corrected</div>
+            <div id="grammarCorrected" class="grammar-corrected"></div>
+          </div>
+          <ul id="grammarChanges" class="grammar-changes"></ul>
+          <div id="grammarActions" class="grammar-actions" hidden>
+            <button id="grammarUseBtn" class="btn small primary">Use correction</button>
+            <button id="grammarHideBtn" class="btn small ghost">Hide</button>
+          </div>
+        </div>
+
         <div class="action-row">
           <button id="customListenBtn" class="btn primary">▶ Listen</button>
           <button id="customRecordBtn" class="btn record">● <span class="record-label">Record</span></button>

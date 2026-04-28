@@ -422,6 +422,86 @@
     }
   }
 
+  // ---------- Grammar check ----------
+  $('grammarCheckBtn').addEventListener('click', checkGrammar);
+  $('grammarHideBtn').addEventListener('click', () => {
+    $('grammarPanel').hidden = true;
+  });
+  $('grammarUseBtn').addEventListener('click', () => {
+    const corrected = $('grammarUseBtn').dataset.corrected || '';
+    if (!corrected) return;
+    $('customInput').value = corrected;
+    toast('Correction applied — tap Listen to hear it.');
+  });
+
+  async function checkGrammar() {
+    const text = $('customInput').value.trim();
+    if (!text) { toast('Type a sentence first.'); return; }
+    if (!state.workerUrl) {
+      toast('Grammar check needs the TTS worker URL — see Settings.');
+      return;
+    }
+    if (text.length > 1000) { toast('Too long — keep it under 1000 characters.'); return; }
+
+    const panel = $('grammarPanel');
+    const status = $('grammarStatus');
+    const correctedWrap = $('grammarCorrectedWrap');
+    const correctedEl = $('grammarCorrected');
+    const changesEl = $('grammarChanges');
+    const actionsEl = $('grammarActions');
+
+    panel.hidden = false;
+    correctedWrap.hidden = true;
+    actionsEl.hidden = true;
+    changesEl.innerHTML = '';
+    status.textContent = 'Checking…';
+    status.style.color = '';
+
+    try {
+      const res = await fetch(state.workerUrl + '/grammar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || ('http_' + res.status));
+
+      if (!data.hasErrors) {
+        status.textContent = 'Looks good — no grammar issues found.';
+        status.style.color = 'var(--good)';
+        return;
+      }
+
+      status.textContent = `${data.changes.length} correction${data.changes.length === 1 ? '' : 's'}:`;
+      status.style.color = '';
+
+      correctedEl.textContent = data.corrected;
+      correctedWrap.hidden = false;
+
+      data.changes.forEach((c) => {
+        const li = document.createElement('li');
+        const swap = document.createElement('div');
+        swap.className = 'swap';
+        swap.innerHTML =
+          `<span class="before"></span><span class="arrow">→</span><span class="after"></span>`;
+        swap.querySelector('.before').textContent = c.before;
+        swap.querySelector('.after').textContent = c.after;
+        const why = document.createElement('div');
+        why.className = 'why';
+        why.textContent = c.explanation;
+        li.appendChild(swap);
+        li.appendChild(why);
+        changesEl.appendChild(li);
+      });
+
+      $('grammarUseBtn').dataset.corrected = data.corrected;
+      actionsEl.hidden = false;
+    } catch (err) {
+      status.textContent = 'Grammar check failed: ' + err.message;
+      status.style.color = 'var(--bad)';
+    }
+  }
+
   function resizeImage(file, maxEdge, quality) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();

@@ -7,7 +7,7 @@ A free Progressive Web App (PWA) that helps users practice English pronunciation
 - **Library** — curated word & phrase list across categories (Greetings, Often Mispronounced, Th/R/L sounds, Travel, Business, Numbers & Time, Tongue Twisters), each with IPA phonetics and meaning.
 - **Listen** — tap any word to hear native pronunciation (browser TTS). Adjustable speed and voice.
 - **Practice** — tap *Record*, speak the word, and the app scores your pronunciation 0–100% with a colored diff of what was heard.
-- **Custom** — type any word or sentence and practice it. **📷 Capture from photo** uses your phone camera + Gemini vision to extract English text from a photo (sign, menu, book) and pronounce it automatically.
+- **Custom** — type any word or sentence and practice it. **📷 Capture from photo** uses your phone camera + Gemini vision to extract English text from a photo (sign, menu, book) and pronounce it automatically. **✓ Check grammar** sends your sentence to Gemini, returns a corrected version plus a per-change explanation of why each fix was made.
 - **Settings** — pick voice, speed (0.5×–1.3×), and recognition accent (US / UK / AU / IN / CA).
 - **Streak & daily count** — saved locally.
 - **Offline support** — once loaded, works without internet (TTS still needs the device's TTS engine).
